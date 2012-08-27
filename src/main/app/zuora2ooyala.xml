@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:zuora="http://www.mulesoft.org/schema/mule/zuora" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:core="http://www.mulesoft.org/schema/mule/core" xmlns:https="http://www.mulesoft.org/schema/mule/https" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.3.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/https http://www.mulesoft.org/schema/mule/https/current/mule-https.xsd 
+http://www.mulesoft.org/schema/mule/zuora http://www.mulesoft.org/schema/mule/zuora/1.0/mule-zuora.xsd 
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd 
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd ">
+
+	<https:connector name="httpsConnector" doc:name="HTTP\HTTPS" clientSoTimeout="10000" cookieSpec="netscape" proxyHostname="localhost" proxyPort="80" receiveBacklog="0" receiveBufferSize="0" sendBufferSize="0" serverSoTimeout="10000" socketSoLinger="0" validateConnections="true">
+        <https:tls-client path="${app.home}/truststore" storePassword="MuleSoft1"/>
+        <https:tls-key-store path="${app.home}/keystore" keyPassword="MuleSoft1" storePassword="MuleSoft1"/>
+	</https:connector>
+    <zuora:config name="Zuora" username="${z.user}" password="${z.pw}" doc:name="Zuora"/>
+    <flow name="zuora2ooyalaFlow1" doc:name="zuora2ooyalaFlow1">
+        <https:inbound-endpoint exchange-pattern="request-response" host="localhost" port="${https.port}" path="subscription" connector-ref="httpsConnector" doc:name="HTTP"/>
+        <http:body-to-parameter-map-transformer doc:name="Body to Parameter Map"/>
+        <logger message="#[payload]" level="INFO" doc:name="Logger"/>
+        <zuora:find config-ref="Zuora" zquery="select ProductRatePlanId from RatePlan where SubscriptionId='#[payload.SubscriptionID]'" doc:name="Zuora"/>
+        <logger message="#[payload]" level="INFO" doc:name="Logger"/>
+        <zuora:find config-ref="Zuora" zquery="select id,  assets__c from ProductRatePlan" doc:name="Zuora"/>
+        <logger message="#[payload[0]]" level="INFO"/>
+        <expression-transformer expression="#[payload[0].dynamicProperties()[0].getValue()]" doc:name="Expression"/>
+        <object-to-string-transformer doc:name="Object to String"/>
+        <logger message="#[payload]" level="INFO" doc:name="Logger"/>
+    </flow>
+</mule>
